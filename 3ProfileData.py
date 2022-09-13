@@ -1,9 +1,7 @@
 #%%
 import sqlite3
 import pandas as pd
-import numpy as np
 
-profiler_version = 0.1
 engine = sqlite3.connect('covid19.sqlite.db')
 
 #%% Schema
@@ -39,6 +37,17 @@ def profile_col_names(tablename):
     values = ",".join(col_names(tablename))
     profile(tablename, 'all', 'col_names', values)
 
+def profile_data_types(tablename):
+    values = ",".join([str(i) for i in data_types(tablename)])
+    profile(tablename, 'all', 'col_types', values)
+
+def profile_null(table):
+    for col in col_names(table):
+        sql = f'''SELECT COUNT({col})
+            FROM {table} WHERE {col} IS NULL;
+        '''
+        profile(table, col, 'null_count', pd.read_sql(sql, engine).iloc[0,0])
+
 def profile_numeric_columns(table):
     columns = col_names(table)
     dtypes = data_types(table)
@@ -54,9 +63,18 @@ def profile_numeric_columns(table):
             WHERE {col} IS NOT NULL;
             '''
 
-            df = pd.read_sql(sql, engine)
-            for icol in df.columns:
-                profile(table, col, icol, df[icol][0])
+        elif dt == int or dt == str or dt == object:
+            sql = f'''
+            SELECT
+                MIN({col}) AS col_min, 
+                MAX({col}) AS col_max
+            FROM {table}
+            WHERE {col} IS NOT NULL;
+            '''
+
+        df = pd.read_sql(sql, engine)
+        for icol in df.columns:
+            profile(table, col, icol, df[icol][0])
 
 #%%
 create_profile(engine)
@@ -67,7 +85,8 @@ profile_col_count('census')
 profile_col_count('counties')
 profile_col_names('census')
 profile_col_names('counties')
-
+profile_numeric_columns('census')
+profile_numeric_columns('counties')
 #%%
 
 engine.commit()
