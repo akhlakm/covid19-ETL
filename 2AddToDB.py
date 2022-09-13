@@ -1,7 +1,7 @@
 import pandas as pd 
-from sqlalchemy import create_engine
+import sqlite3
 
-engine = create_engine('sqlite:///covid19.sqlite.db', echo=True)
+engine = sqlite3.connect('covid19.sqlite.db')
 
 counties = pd.read_csv("us-counties.csv")
 counties.to_sql('counties', con=engine, index_label='id', if_exists='replace')
