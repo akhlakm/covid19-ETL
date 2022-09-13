@@ -42,11 +42,21 @@ def profile_data_types(tablename):
     profile(tablename, 'all', 'col_types', values)
 
 def profile_null(table):
+    # for col in col_names(table):
+    #     sql = f'''SELECT COUNT({col})
+    #         FROM {table} WHERE {col} IS NULL;
+    #     '''
+    #     profile(table, col, 'null_count', pd.read_sql(sql, engine).iloc[0,0])
+    sqls = []
     for col in col_names(table):
-        sql = f'''SELECT COUNT({col})
-            FROM {table} WHERE {col} IS NULL;
-        '''
-        profile(table, col, 'null_count', pd.read_sql(sql, engine).iloc[0,0])
+        sqls.append(f'''
+            SELECT '{col}' as column, COUNT({col}) as value
+            FROM {table}
+            WHERE {col} IS NULL
+            ''')
+    sql = "UNION ALL".join(sqls)
+    df = pd.read_sql(sql, engine).assign(table = table, info = 'null_count')
+    df.to_sql('profile_summary', con=engine, if_exists='append', index=False)
 
 def profile_numeric_columns(table):
     columns = col_names(table)
