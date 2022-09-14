@@ -18,6 +18,7 @@ def create_audit(conn):
         column  TEXT NOT NULL,
         audit   TEXT NOT NULL,
         rowval  TEXT NOT NULL,
+        desc    TEXT,
         date    DATE DEFAULT CURRENT_TIMESTAMP
     );
     '''
@@ -27,16 +28,16 @@ def create_audit(conn):
 
 def null_rows(conn, table, column):
     sql = f'''
-    INSERT INTO audit ('rowval', 'tblname', 'column', 'audit')
-    SELECT id, '{table}', '{column}', 'null row index'
+    INSERT INTO audit ('rowval', 'tblname', 'column', 'audit', 'desc')
+    SELECT id, '{table}', '{column}', 'null', 'null row index'
     FROM {table} WHERE {column} IS NULL;
     '''
     print(sql)
     conn.execute(sql)
 
     sql = f'''
-    INSERT INTO audit ('rowval', 'tblname', 'column', 'audit')
-    SELECT id, '{table}', '{column}', 'empty row index'
+    INSERT INTO audit ('rowval', 'tblname', 'column', 'audit', 'desc')
+    SELECT id, '{table}', '{column}', 'empty', 'empty row index'
     FROM {table} WHERE {column} = '';
     '''
     print(sql)
@@ -44,8 +45,8 @@ def null_rows(conn, table, column):
 
 def unique_values(conn, table, column):
     sql = f'''
-    INSERT INTO audit ('rowval', 'tblname', 'column', 'audit')
-    SELECT DISTINCT({column}) as rowval, '{table}', '{column}', 'unique value'
+    INSERT INTO audit ('rowval', 'tblname', 'column', 'audit', 'desc')
+    SELECT DISTINCT({column}) as rowval, '{table}', '{column}', 'unique', 'unique value'
     FROM {table} WHERE {column} IS NOT NULL;
     '''
     print(sql)
