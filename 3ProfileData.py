@@ -55,32 +55,6 @@ def profile_data_types(tablename):
     values = ",".join([str(i) for i in data_types(tablename)])
     profile(tablename, 'all', 'col_types', values)
 
-def profile_columns(table):
-    sqls = []
-    columns = col_names(table)
-    dtypes = data_types(table)
-
-    for col, dt in zip(columns, dtypes):
-        sqls.append(f'(SELECT COUNT(*) FROM {table} WHERE {col} IS NULL) as {col}_nullCount')
-        sqls.append(f'(SELECT COUNT(*) FROM {table} WHERE {col} = '') as {col}_empty')
-        sqls.append(f'(SELECT MIN({col}) FROM {table} WHERE {col} IS NOT NULL) as {col}_min')
-        sqls.append(f'(SELECT MAX({col}) FROM {table} WHERE {col} IS NOT NULL) as {col}_max')
-        if dt == float:
-            sqls.append(f'(SELECT AVG({col}) FROM {table} WHERE {col} IS NOT NULL) as {col}_avg')
-        elif dt == object:
-            sqls.append(f'(SELECT COUNT(DISTINCT({col})) FROM {table} WHERE {col} IS NOT NULL) as {col}_uniqueCount')
-
-    sql = "SELECT" + ", ".join(sqls) + ";"
-    df = pd.read_sql(sql, engine)
-
-    for col, dt in zip(columns, dtypes):
-        profile(table, col, 'null_count', df[col+'_nullCount'][0])
-        profile(table, col, 'empty_count', df[col+'_empty'][0])
-        profile(table, col, 'min', df[col+'_min'][0])
-        profile(table, col, 'max', df[col+'_max'][0])
-        if dt == float: profile(table, col, 'avg', df[col+'_avg'][0])
-        elif dt == object: profile(table, col, 'unique_count', df[col+'_uniqueCount'][0])
-
 #%%
 
 create_profile(engine)
@@ -90,7 +64,6 @@ for tabl in ['counties', 'census']:
     profile_col_count(tabl)
     profile_col_names(tabl)
     profile_data_types(tabl)
-    profile_columns(tabl)
 
 #%%
 engine.commit()
