@@ -7,53 +7,27 @@ engine = sqlite3.connect('covid19.sqlite.db')
 #%% Schema
 def create_audit(conn):
     try:
-        conn.execute("DROP TABLE audit;")
+        conn.execute("SELECT 1 FROM audit;")
     except sqlite3.OperationalError:
-        pass
+        sql = '''
+        CREATE TABLE audit (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tblname TEXT NOT NULL,
+            column  TEXT NOT NULL,
+            audit   TEXT NOT NULL,
+            row     INTEGER,
+            value   TEXT,
+            desc    TEXT,
+            date    DATE DEFAULT CURRENT_TIMESTAMP
+        );
+        '''
+        print(sql)
+        conn.execute(sql)
+        conn.commit()
 
-    sql = '''
-    CREATE TABLE audit (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tblname TEXT NOT NULL,
-        column  TEXT NOT NULL,
-        audit   TEXT NOT NULL,
-        row     INTEGER,
-        value   TEXT,
-        desc    TEXT,
-        date    DATE DEFAULT CURRENT_TIMESTAMP
-    );
-    '''
-    print(sql)
-    conn.execute(sql)
-    conn.commit()
+#%% Audit Individual
 
-
-#%% Profile
-
-def profile_table(conn, table):
-    cnames  = pd.read_sql(f'SELECT * FROM {table} LIMIT 1', engine).columns.values
-    dtypes  = [str(i) for i in pd.read_sql(f'SELECT * FROM {table} LIMIT 1', engine).dtypes]
-
-    # Row count
-    sql = f'''
-    INSERT INTO audit ('value', 'tblname', 'column', 'audit', 'desc')
-    SELECT COUNT(*), '{table}', 'all', 'row_count', 'number of rows'
-    FROM {table};
-    '''
-    print(sql)
-    conn.execute(sql)
-
-    # Column count, values, types
-    sql = f'''INSERT INTO audit
-    ('value', 'tblname', 'column', 'audit', 'desc') VALUES
-    ('{len(cnames)}',       '{table}', 'all', 'col_count', 'number of columns'),
-    ('{",".join(cnames)}',  '{table}', 'all', 'col_names', 'names of columns'),
-    ('{",".join(dtypes)}',  '{table}', 'all', 'col_types', 'types of columns');
-    '''
-    print(sql)
-    conn.execute(sql)
-
-def null_rows(conn, table, column):
+def audit_null_rows(conn, table, column):
     sql = f'''
     INSERT INTO audit ('row', 'tblname', 'column', 'audit', 'desc')
     SELECT id, '{table}', '{column}', 'null', 'null row index'
@@ -64,7 +38,7 @@ def null_rows(conn, table, column):
     print(sql)
     conn.execute(sql)
 
-def unique_values(conn, table, column):
+def audit_unique_values(conn, table, column):
     sql = f'''
     INSERT INTO audit ('value', 'tblname', 'column', 'audit', 'desc')
     SELECT DISTINCT({column}), '{table}', '{column}', 'unique', 'unique value'
@@ -73,7 +47,7 @@ def unique_values(conn, table, column):
     print(sql)
     conn.execute(sql)
 
-def invalid_date(conn, table, column):
+def audit_invalid_date(conn, table, column):
     sql = f'''
     INSERT INTO audit ('row', 'value', 'tblname', 'column', 'audit', 'desc')
     SELECT id, {column}, '{table}', '{column}', 'invalid_date', 'invalid date row and value'
@@ -89,20 +63,23 @@ def invalid_date(conn, table, column):
     conn.execute(sql)
 
 #%% Run
+engine.execute('drop table audit;')
+
+#%%
 create_audit(engine)
 
 for tabl in ['counties', 'census']:
-    profile_table(engine, tabl)
-
     cnames  = pd.read_sql(f'SELECT * FROM {tabl} LIMIT 1', engine).columns.values
     dtypes  = [str(i) for i in pd.read_sql(f'SELECT * FROM {tabl} LIMIT 1', engine).dtypes]
 
     for col, dt in zip(cnames, dtypes):
         print(tabl, col, dt)
-        null_rows(engine, tabl, col)
+        audit_null_rows(engine, tabl, col)
         if dt == 'object':
-            unique_values(engine, tabl, col)
+            audit_unique_values(engine, tabl, col)
 
-    invalid_date(engine, 'counties', 'date')
+    audit_invalid_date(engine, 'counties', 'date')
 
 engine.commit()
+
+# %%
