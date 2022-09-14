@@ -23,8 +23,6 @@ def create_profile(conn):
         '''
         print(sql)
         conn.execute(sql)
-        conn.commit()
-
 
 #%% Profile Aggregate
 

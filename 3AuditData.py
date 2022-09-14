@@ -23,7 +23,6 @@ def create_audit(conn):
         '''
         print(sql)
         conn.execute(sql)
-        conn.commit()
 
 #%% Audit Individual
 
