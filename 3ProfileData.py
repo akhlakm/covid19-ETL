@@ -61,7 +61,8 @@ def profile_columns(table):
     dtypes = data_types(table)
 
     for col, dt in zip(columns, dtypes):
-        sqls.append(f'(SELECT COUNT({col}) FROM {table} WHERE {col} IS NULL) as {col}_nullCount')
+        sqls.append(f'(SELECT COUNT(*) FROM {table} WHERE {col} IS NULL) as {col}_nullCount')
+        sqls.append(f'(SELECT COUNT(*) FROM {table} WHERE {col} = '') as {col}_empty')
         sqls.append(f'(SELECT MIN({col}) FROM {table} WHERE {col} IS NOT NULL) as {col}_min')
         sqls.append(f'(SELECT MAX({col}) FROM {table} WHERE {col} IS NOT NULL) as {col}_max')
         if dt == float:
@@ -74,6 +75,7 @@ def profile_columns(table):
 
     for col, dt in zip(columns, dtypes):
         profile(table, col, 'null_count', df[col+'_nullCount'][0])
+        profile(table, col, 'empty_count', df[col+'_empty'][0])
         profile(table, col, 'min', df[col+'_min'][0])
         profile(table, col, 'max', df[col+'_max'][0])
         if dt == float: profile(table, col, 'avg', df[col+'_avg'][0])
