@@ -28,7 +28,7 @@ def create_audit(conn):
 def null_rows(conn, table, column):
     sql = f'''
     INSERT INTO audit ('rowval', 'tblname', 'column', 'audit')
-    SELECT id, '{table}', '{column}', 'null'
+    SELECT id, '{table}', '{column}', 'null row index'
     FROM {table} WHERE {column} IS NULL;
     '''
     print(sql)
@@ -36,7 +36,7 @@ def null_rows(conn, table, column):
 
     sql = f'''
     INSERT INTO audit ('rowval', 'tblname', 'column', 'audit')
-    SELECT id, '{table}', '{column}', 'empty'
+    SELECT id, '{table}', '{column}', 'empty row index'
     FROM {table} WHERE {column} = '';
     '''
     print(sql)
@@ -45,13 +45,28 @@ def null_rows(conn, table, column):
 def unique_values(conn, table, column):
     sql = f'''
     INSERT INTO audit ('rowval', 'tblname', 'column', 'audit')
-    SELECT DISTINCT({column}) as rowval, '{table}', '{column}', 'unique'
+    SELECT DISTINCT({column}) as rowval, '{table}', '{column}', 'unique value'
     FROM {table} WHERE {column} IS NOT NULL;
     '''
     print(sql)
     conn.execute(sql)
 
+def invalid_date(conn, table, column):
+    sql = f'''
+    INSERT INTO audit ('rowval', 'tblname', 'column', 'audit')
+    SELECT id, '{table}', '{column}', 'invalid date'
+    FROM {table}
+    WHERE DATE(substr({column},7,4)
+    ||'-'
+    ||substr({column},4,2)
+    ||'-'
+    ||substr({column},1,2)) 
+    NOT BETWEEN DATE('2019-01-01') AND DATE('now');
+    '''
+    print(sql)
+    conn.execute(sql)
 
+#%% Run
 create_audit(engine)
 
 for tabl in ['counties', 'census']:
@@ -72,5 +87,7 @@ for tabl in ['counties', 'census']:
         null_rows(engine, tabl, col)
         if dt == 'object':
             unique_values(engine, tabl, col)
+
+    invalid_date(engine, 'counties', 'date')
 
 engine.commit()
