@@ -54,11 +54,15 @@ def profile_table(conn, table):
 def profile_audit(conn, table):
     sql = f'''
     INSERT INTO profile ('value', 'tblname', 'column', 'info', 'desc')
-    SELECT COUNT(DISTINCT(row)), '{table}', 'all', 'null_row_count', 'number of rows with null'
+    SELECT COUNT(DISTINCT(row)), '{table}', 'all', 'null_row_count', 'total number of rows with null or empty'
     FROM audit WHERE tblname = '{table}' AND (audit = 'null' OR audit = 'empty')
     UNION ALL
-    SELECT count(*), '{table}', column, 'unique_count', 'no of uniques'
+    SELECT count(), '{table}', column, 'unique_count', 'no of uniques'
     FROM audit WHERE tblname = '{table}' AND audit = 'unique'
+    GROUP BY column
+    UNION ALL
+    SELECT count(*), '{table}', column, 'null_count', 'no of null or empty for column'
+    FROM audit WHERE tblname = '{table}' AND (audit = 'null' OR audit = 'empty')
     GROUP BY column;
     '''
     print(sql)
