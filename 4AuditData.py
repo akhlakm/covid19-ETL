@@ -54,8 +54,8 @@ def unique_values(conn, table, column):
 
 def invalid_date(conn, table, column):
     sql = f'''
-    INSERT INTO audit ('rowval', 'tblname', 'column', 'audit')
-    SELECT id, '{table}', '{column}', 'invalid date'
+    INSERT INTO audit ('rowval', 'tblname', 'column', 'audit', 'desc')
+    SELECT id, '{table}', '{column}', 'invalid_date', {column}
     FROM {table}
     WHERE DATE(substr({column},7,4)
     ||'-'
